@@ -11,6 +11,12 @@ const db = mysql2.createPool({
     connectionLimit: 20
 });
 
+const createError = (statusCode, msg) => {
+    const error = new Error(msg)
+    error.statusCode(statusCode)
+}
+
+
 // ## Login
 // Method : post, Path:/login
 // Data : username, password (Request body)
@@ -21,11 +27,12 @@ app.post('/login', async (req, res, next) => {
         // Find user with username, password
         const result = await db.query('SELECT * FROM users WHERE username = ? AND password = ?', [username, password]); // [{}, {}]
         if (result[0].length === 0) {
-            return res.status(400).json({ msg: 'invalid username or password' })
+            // return res.status(400).json({ msg: 'invalid username or password' })
+            return next(createError(400, 'invalid username or password'));
         }
         res.status(200).json({ msg: 'success login' });
     } catch (err) {
-        res.status(500).json({ msg: 'internal server error' })
+        next(createError(500, 'Internal server error'))
     }
 });
 
@@ -40,7 +47,8 @@ app.post('/register', async (req, res, next) => {
         // Find exist username
         const result = await db.query('SELECT * FROM users WHERE username = ?', [username]) // [{ },{}]
         if (result[0].length > 0) {
-            return res.status(400).json({ msg: 'username already using' });
+            // return res.status(400).json({ msg: 'username already using' });
+            return next(createError(400, 'username already using'));
         }
         // If validate Fail
         // res.status(400).json({ msg: 'Password not right' })
@@ -52,7 +60,7 @@ app.post('/register', async (req, res, next) => {
         await db.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, password]);
         res.status(201).json({ msg: 'Success for register.' });
     } catch (err) {
-        res.status(500).json({ msg: 'Internal server error' });
+        next(createError(500, 'Internal server error'))
     }
 });
 
@@ -65,12 +73,13 @@ app.put('/change-password', async (req, res, next) => {
         // Validate username
         const result = await db.query('SELECT * FROM users WHERE username = ?', [username])
         if (result[0].length === 0) {
-            return res.status(400).json({ msg: 'Not found this username' });
+            // return res.status(400).json({ msg: 'Not found this username' });
+            return next(createError(400, 'Not found this username'));
         }
         await db.query('UPDATE users SET password = ? WHERE username = ? ', [newPassword, username]);
         res.status(200).json({ msg: 'success for change password' });
     } catch (err) {
-        res.status(500).json({ msg: 'Internal server error' });
+        next(createError(500, 'Internal server error'))
     }
 })
 
@@ -82,12 +91,13 @@ app.post('/createTodo', async (req, res, next) => {
         const { title, userID, completed } = req.body;
         const result = await db.query('SELECT * FROM users WHERE id = ?', [userID])
         if (result[0].length === 0) {
-            return res.status(400).json({ msg: 'UserID not found' });
+            // return res.status(400).json({ msg: 'UserID not found' });
+            return next(createError(400, 'UserID not found'));
         }
         await db.query('INSERT INTO todos (title, completed, user_id)  VALUES (?,?,?)', [title, completed, userID])
         res.status(201).json({ msg: 'Create-Todo DONE !' })
     } catch (err) {
-        res.status(500).json({ msg: 'Internal server error' });
+        next(createError(500, 'Internal server error'))
     }
 });
 
@@ -112,7 +122,8 @@ app.get('/get-todo', async (req, res, next) => {
         const result = await db.query('SELECT * FROM todos')
         return res.status(200).json({ resultTodo: result[0] });
     } catch (err) {
-        res.status(500).json({ msg: 'Internal server error' });
+        // res.status(500).json({ msg: 'Internal server error' });
+        next(createError(500, 'Internal server error'))
     }
 });
 
@@ -126,13 +137,19 @@ app.delete('/delete-todo/:idToDelete', async (req, res, next) => {
         // Find Todo
         const result = await db.query('SELECT * FROM todos WHERE id = ?', [idToDelete])
         if (result[0].length === 0) {
-            return res.status(400).json({ msg: 'todo with id not found' })
+            // return res.status(400).json({ msg: 'todo with id not found' })
+            return next(createError(400, 'todo with id not found'));
         }
         await db.query('DELETE FROM todos WHERE id = ?', [idToDelete])
         res.status(200).json({ msg: 'Delete successfully' })
     } catch (err) {
-        res.status(500).json({ msg: 'Internal server error' });
+        //res.status(500).json({ msg: 'Internal server error' });
+        next(createError(500, 'Internal server error'))
     }
+})
+
+app.use((err, req, res, next) => {
+    res.status(err.statusCode || 500).json({ msg: err.msg });
 })
 
 app.listen(8888, () => console.log('Server on port 8888'));
