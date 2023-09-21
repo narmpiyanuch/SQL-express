@@ -96,7 +96,7 @@ app.post('/createTodo', async (req, res, next) => {
 // Data : serachTitle, userId(query)
 app.get('/get-todo', async (req, res, next) => {
     try {
-        const { searchTitle, userId } = req.body
+        const { searchTitle, userId } = req.query
         if (searchTitle !== undefined && userId !== undefined) {
             const result = await db.query('SELECT * FROM todos WHERE title = ? AND user_id = ?', [searchTitle, userId]);
             return res.status(200).json({ resultTodo: result[0] });
