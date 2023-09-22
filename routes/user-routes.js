@@ -13,6 +13,8 @@ router.post('/login', async (req, res, next) => {
         const { username, password } = req.body
         // Find user with username, password
         const result = await db.query('SELECT * FROM users WHERE username = ? AND password = ?', [username, password]); // [{}, {}]
+        // const result = await prisma.user.findMany({where:{username.username}})
+
         if (result[0].length === 0) {
             // return res.status(400).json({ msg: 'invalid username or password' })
             return next(createError(400, 'invalid username or password'));
